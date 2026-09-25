@@ -1,0 +1,241 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(cuid())
+  name             String
+  email            String   @unique
+  passwordHash     String
+  avatar           String?
+  bio              String?
+  location         String?
+  favouriteGenres  String[]
+  phone            String   @default("")
+  addressLine      String   @default("")
+  addressSuburb    String   @default("")
+  addressCity      String   @default("")
+  addressPostcode  String   @default("")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  hostedMeetups    Meetup[]              @relation("HostedMeetups")
+  attendances      MeetupAttendee[]
+  listings         BookListing[]
+  savedMeetups     SavedMeetup[]
+  savedBooks       SavedBook[]
+  conversations    ConversationParticipant[]
+  messages         Message[]
+  notifications    Notification[]
+  paymentMethods   PaymentMethod[]
+  purchases        Order[]               @relation("BuyerOrders")
+  sales            Order[]               @relation("SellerOrders")
+
+  @@index([email])
+}
+
+model Meetup {
+  id                String   @id @default(cuid())
+  title             String
+  description       String   @default("")
+  bookTitle         String
+  bookAuthor        String   @default("")
+  bookCover         String?
+  genre             String
+  meetupType        String
+  date              DateTime
+  startTime         String
+  endTime           String
+  location          String
+  suburb            String   @default("")
+  maximumAttendees  Int
+  discussionTopics  String[]
+  rules             String[]
+  coverImage        String?
+  status            String   @default("published")
+  hostId            String
+  host              User     @relation("HostedMeetups", fields: [hostId], references: [id], onDelete: Cascade)
+  attendees         MeetupAttendee[]
+  savedBy           SavedMeetup[]
+  conversations     Conversation[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([hostId])
+  @@index([status, date])
+  @@index([genre])
+  @@index([suburb])
+}
+
+model MeetupAttendee {
+  id        String   @id @default(cuid())
+  meetupId  String
+  userId    String
+  meetup    Meetup   @relation(fields: [meetupId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([meetupId, userId])
+  @@index([userId])
+}
+
+model BookListing {
+  id             String   @id @default(cuid())
+  title          String
+  author         String
+  isbn           String?
+  genre          String
+  condition      String
+  price          Decimal  @db.Decimal(8, 2)
+  description    String   @default("")
+  sellerNotes    String   @default("")
+  pickupLocation String
+  image          String?
+  status         String   @default("active")
+  sellerId       String
+  seller         User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  savedBy        SavedBook[]
+  conversations  Conversation[]
+  order          Order?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([sellerId])
+  @@index([status])
+  @@index([genre])
+  @@index([title])
+  @@index([author])
+  @@index([isbn])
+}
+
+model SavedMeetup {
+  id        String   @id @default(cuid())
+  userId    String
+  meetupId  String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meetup    Meetup   @relation(fields: [meetupId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, meetupId])
+  @@index([meetupId])
+}
+
+model SavedBook {
+  id        String      @id @default(cuid())
+  userId    String
+  bookId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      BookListing @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([userId, bookId])
+  @@index([bookId])
+}
+
+model Conversation {
+  id           String   @id @default(cuid())
+  meetupId     String?
+  bookId       String?
+  meetup       Meetup?      @relation(fields: [meetupId], references: [id], onDelete: SetNull)
+  book         BookListing? @relation(fields: [bookId], references: [id], onDelete: SetNull)
+  participants ConversationParticipant[]
+  messages     Message[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([meetupId])
+  @@index([bookId])
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  userId         String
+  lastReadAt     DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+  body           String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  text      String
+  link      String?
+  read      Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read, createdAt])
+}
+
+model PaymentMethod {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String
+  label      String
+  last4      String   @default("")
+  expiry     String   @default("")
+  holderName String   @default("")
+  email      String   @default("")
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  buyerId        String
+  sellerId       String
+  bookId         String      @unique
+  buyer          User        @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller         User        @relation("SellerOrders", fields: [sellerId], references: [id], onDelete: Cascade)
+  book           BookListing @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  amount         Decimal     @db.Decimal(8, 2)
+  paymentLabel   String
+  carrier        String
+  trackingNumber String
+  shipToName     String
+  shipToPhone    String
+  shipToLine     String
+  shipToSuburb   String
+  shipToCity     String
+  shipToPostcode String
+  origin         String
+  createdAt      DateTime    @default(now())
+
+  @@index([buyerId, createdAt])
+  @@index([sellerId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}

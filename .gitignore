@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+dist
+.env
+.env.local
+.pgdata
+*.log
+.DS_Store
+Thumbs.db
+coverage
+prisma/*.db
+next-env.d.ts

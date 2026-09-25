@@ -1,82 +1,75 @@
 # Leaf & Lit
 
-## Overview
+Leaf & Lit is a local full-stack app for in-person book gatherings and second-hand books. A reader can browse gatherings, join or host one, list a book, buy a listing, and follow that parcel after checkout.
 
-Leaf & Lit is a full-stack community platform for organizing local book gatherings and buying and selling second-hand books. Readers can discover in-person meetups, join or host them, list pre-loved books, message hosts and sellers, and save what they want to come back to.
+It runs on your machine. Payments are recorded locally and are not sent to a bank or a payment provider. Card numbers are not stored; only the last four digits are kept. Images are files in the repository, not a cloud upload.
 
-The app is a local portfolio project. It is meant to run on your machine. Production deployment, payments, and cloud image storage are intentionally out of scope.
+## Try it
 
-## Test account
-
-After seeding the database, sign in at [http://localhost:3000/signin](http://localhost:3000/signin) with:
+After the steps in [Getting Started](#getting-started), open [http://localhost:3000](http://localhost:3000) and sign in:
 
 | Field | Value |
 | --- | --- |
 | Email | `alex@leaflit.nz` |
 | Password | `LeafLit2026!` |
 
-Alex Mercer is the main seeded reader and already has gatherings, listings, saved items, messages, and notifications. Every other seeded account uses the same password, for example `emma@leaflit.nz`.
+Useful paths once signed in:
+
+- `/marketplace` — buy an active listing with the saved Visa or PayPal method
+- `/orders` — My Purchases, with carrier, current location, and a collapsible tracking timeline
+- `/settings` — delivery address, phone, and payment methods
+- `/gatherings` — search and join a gathering
+- `/messages` — existing conversation with a host
+
+Alex already has gatherings, listings, messages, notifications, a delivery address, two payment methods, and ten purchases at different stages of delivery. Other seeded accounts use the same password, for example `emma@leaflit.nz`.
 
 ## Features
 
-- Register, sign in, sign out, and change your password with hashed credentials and an httpOnly session cookie
-- Discover gatherings with search, genre, type, date, location, and available-spots filters
-- Create, edit, publish, join, leave, and cancel gatherings, with capacity and duplicate-join checks
-- Browse the marketplace by title, author, ISBN, genre, condition, price, and location
-- Create, edit, delete, and mark book listings as sold
-- Save and unsave gatherings and books
-- Message hosts and sellers, with conversation history stored in PostgreSQL
-- Notifications for joins, messages, saves, and gathering updates
-- Profile, public reader profiles, and settings
+- Email and password accounts, with bcrypt hashes and an httpOnly session cookie
+- Gatherings: search and filters, create, edit, publish, join, leave, and cancel, with capacity checks
+- Marketplace: search by title, author, ISBN, genre, condition, price, and location; create, edit, and delete listings
+- Checkout: a listing can be bought once, with the buyer's saved address and payment method
+- Settings: delivery address, phone, and payment methods (credit card, debit card, PayPal, Apple Pay, Google Pay, Stripe)
+- My Purchases: each order folds open to show the carrier, tracking number, current place, and timeline
+- Messages between readers, hosts, and sellers
+- Notifications for joins, messages, saves, gathering changes, and sales. Delivery updates stay on My Purchases
+- Profile pages and password change
 
-## Tech Stack
+## Tech stack
 
-- Next.js
-- React
-- TypeScript
+- TypeScript, React, and Next.js App Router
+- REST route handlers for auth, gatherings, books, orders, and settings
+- Zod for request validation
+- PostgreSQL and Prisma, including migrations and seed data
 - Tailwind CSS
-- PostgreSQL
-- Prisma
 
-## Screenshots
+## Database
 
-Capture these after the app is running and place the files in `docs/screenshots/`:
+Foreign keys enforce the relationships.
 
-- `docs/screenshots/home.png` — home page
-- `docs/screenshots/gatherings.png` — discover gatherings
-- `docs/screenshots/marketplace.png` — marketplace
-- `docs/screenshots/messages.png` — messages
+- **User** hosts gatherings, sells books, and stores a phone number plus a delivery address.
+- **Meetup** has one host and many **MeetupAttendee** rows. A user can join a gathering only once.
+- **BookListing** belongs to a seller and is `draft`, `active`, or `sold`.
+- **PaymentMethod** belongs to a user. One method can be the default.
+- **Order** is one purchase of one listing. It snapshots the price, payment label, address, carrier, and tracking number.
+- **SavedMeetup** and **SavedBook** bookmark an item once per user.
+- **Conversation**, **ConversationParticipant**, and **Message** store threads about a gathering or a listing.
+- **Notification** records joins, messages, saves, gathering changes, and sales.
+- **PasswordResetToken** is a short-lived local token. The demo does not send email.
 
-## Database Design
+## Getting started
 
-The schema is relational and enforced with foreign keys.
+You need Node.js 22.16 or newer and npm. Prisma on Windows crashes under Node.js 22.11. PostgreSQL does not have to be installed separately.
 
-- **User** owns gatherings, listings, messages, saves, and notifications.
-- **Meetup** is hosted by one user and has many **MeetupAttendee** rows. A user can join a gathering only once.
-- **BookListing** belongs to a seller and moves through draft, active, and sold.
-- **SavedMeetup** and **SavedBook** store bookmarks with a unique pair of user and item.
-- **Conversation** optionally points at a gathering or a listing. **ConversationParticipant** and **Message** store who is in the thread and what was said.
-- **Notification** is created when someone joins, messages, saves, or updates a gathering.
-- **PasswordResetToken** stores a short-lived local reset token. The demo does not send email.
-
-## Getting Started
-
-You need Node.js 22.16 or newer and npm. Prisma's Windows engine crashes on Node.js 22.11, so use a current 22.x release. PostgreSQL does not have to be installed separately. `npm run db:start` downloads and runs a local PostgreSQL server for this project.
-
-1. Clone the repository
+1. Clone the repository and install dependencies
 
 ```bash
 git clone <your-repository-url>
 cd leaf-lit
-```
-
-2. Install dependencies
-
-```bash
 npm install
 ```
 
-3. Create the environment file
+2. Create `.env` from the example
 
 ```bash
 cp .env.example .env
@@ -88,54 +81,45 @@ On Windows PowerShell:
 Copy-Item .env.example .env
 ```
 
-4. Start the local PostgreSQL database (leave this terminal open)
+3. Start the local database and leave that terminal open
 
 ```bash
 npm run db:start
 ```
 
-This creates a data directory at `%LOCALAPPDATA%\leaflit-pgdata` and a database named `leaflit` on `localhost:5432`. The data directory sits outside the project so PostgreSQL is not affected by non-ASCII folder names. The default connection string in `.env.example` matches that server. If you already run PostgreSQL, create a database named `leaflit` and put your own `DATABASE_URL` in `.env` instead.
+This creates `%LOCALAPPDATA%\leaflit-pgdata` and a database named `leaflit` on `localhost:5432`. The data directory is outside the project so a non-ASCII project path does not break PostgreSQL. If you already run PostgreSQL, create a database named `leaflit` and set `DATABASE_URL` in `.env`.
 
-5. Run Prisma migrations
-
-```bash
-npx prisma migrate dev --name init
-```
-
-6. Seed the database
+4. Apply migrations, generate the client, and seed
 
 ```bash
+npx prisma migrate deploy
+npx prisma generate
 npm run db:seed
 ```
 
-7. Start the development server
+5. Start the app
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) and sign in as `alex@leaflit.nz` / `LeafLit2026!`.
 
-Sign in with the [test account](#test-account): `alex@leaflit.nz` / `LeafLit2026!`.
-
-## Project Structure
+## Project structure
 
 - `src/app` — pages and REST route handlers
 - `src/components` — navigation, cards, and shared UI
-- `src/features` — gathering and listing forms
-- `src/lib` — Prisma client, auth, validation, and serializers
-- `src/types` — shared TypeScript types
+- `src/features` — gathering, listing, and settings forms
+- `src/lib` — Prisma client, auth, validation, orders, and serializers
 - `prisma` — schema, migrations, and seed data
-- `public/images` — local placeholder images
+- `public/images` — local photographs used by the interface
 - `scripts` — local PostgreSQL launcher
 
-## Future Improvements
+## Not in this demo
 
-These are intentionally outside the current local portfolio scope:
-
-- Real-time messaging
-- Map integration
-- Email notifications
-- Online payments
-- Cloud image storage
-- Production deployment
+- A live payment provider, or charging a real card
+- Email delivery
+- WebSocket chat
+- Maps
+- Cloud image upload
+- Production hosting

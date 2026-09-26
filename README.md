@@ -4,9 +4,30 @@ Leaf & Lit is a local full-stack app for in-person book gatherings and second-ha
 
 It runs on your machine. Payments are recorded locally and are not sent to a bank or a payment provider. Card numbers are not stored; only the last four digits are kept. Images are files in the repository, not a cloud upload.
 
-## Try it
+## Run it locally
 
-After the steps in [Getting Started](#getting-started), open [http://localhost:3000](http://localhost:3000) and sign in:
+You need Node.js 22.16 or newer. PostgreSQL is included; you do not install it yourself. Use two terminals. The first one must stay open.
+
+**Terminal 1.** Install, create the env file, and start the database:
+
+```bash
+npm install
+cp .env.example .env
+npm run db:start
+```
+
+On Windows PowerShell, create the env file with `Copy-Item .env.example .env` instead of `cp`. Wait until this terminal prints `PostgreSQL is running on localhost:5432`. Leave it running.
+
+**Terminal 2.** Create the tables, load the demo data, and start the site:
+
+```bash
+npx prisma migrate deploy
+npx prisma generate
+npm run db:seed
+npm run dev
+```
+
+Then open [http://localhost:3000](http://localhost:3000) and sign in:
 
 | Field | Value |
 | --- | --- |
@@ -57,53 +78,11 @@ Foreign keys enforce the relationships.
 - **Notification** records joins, messages, saves, gathering changes, and sales.
 - **PasswordResetToken** is a short-lived local token. The demo does not send email.
 
-## Getting started
+## Notes for a local database
 
-You need Node.js 22.16 or newer and npm. Prisma on Windows crashes under Node.js 22.11. PostgreSQL does not have to be installed separately.
+`npm run db:start` creates `%LOCALAPPDATA%\leaflit-pgdata` and a database named `leaflit` on `localhost:5432`. The data directory is outside the project so a non-ASCII folder name does not break PostgreSQL. If port 5432 is already in use, stop that PostgreSQL server or point `DATABASE_URL` in `.env` at your own `leaflit` database.
 
-1. Clone the repository and install dependencies
-
-```bash
-git clone <your-repository-url>
-cd leaf-lit
-npm install
-```
-
-2. Create `.env` from the example
-
-```bash
-cp .env.example .env
-```
-
-On Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-3. Start the local database and leave that terminal open
-
-```bash
-npm run db:start
-```
-
-This creates `%LOCALAPPDATA%\leaflit-pgdata` and a database named `leaflit` on `localhost:5432`. The data directory is outside the project so a non-ASCII project path does not break PostgreSQL. If you already run PostgreSQL, create a database named `leaflit` and set `DATABASE_URL` in `.env`.
-
-4. Apply migrations, generate the client, and seed
-
-```bash
-npx prisma migrate deploy
-npx prisma generate
-npm run db:seed
-```
-
-5. Start the app
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) and sign in as `alex@leaflit.nz` / `LeafLit2026!`.
+Prisma on Windows crashes under Node.js 22.11. Use 22.16 or newer.
 
 ## Project structure
 

@@ -8,9 +8,11 @@ It runs on your machine. Payments are recorded locally and are not sent to a ban
 
 You need Node.js 22.16 or newer. PostgreSQL is included; you do not install it yourself. Use two terminals. The first one must stay open.
 
-**Terminal 1.** Install, create the env file, and start the database:
+Clone the repository, then use **terminal 1** to install, create the env file, and start the database:
 
 ```bash
+git clone https://github.com/WeijiaZhouAA/Leaf-Lit.git
+cd Leaf-Lit
 npm install
 cp .env.example .env
 npm run db:start

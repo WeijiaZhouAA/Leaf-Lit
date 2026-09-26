@@ -27,7 +27,7 @@ npm run db:seed
 npm run dev
 ```
 
-Then open [http://localhost:3000](http://localhost:3000) and sign in:
+Then open [http://localhost:3000](http://localhost:3000) and use the following information to sign in:
 
 | Field | Value |
 | --- | --- |
